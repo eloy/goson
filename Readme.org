@@ -83,3 +83,90 @@
     fmt.Printf("\n%s\n", json)
   }
 #+END_SRC
+This will generate
+#+BEGIN_SRC js
+  {
+    "author": {
+      "id": 1,
+      "name": "User1"
+    },
+    "comments": [
+      {
+        "content": "Some comment",
+        "id": 1,
+        "user": {
+          "id": 2,
+          "name": "User2"
+        }
+      },
+      {
+        "content": "Other comment",
+        "id": 2,
+        "user": {
+          "id": 3,
+          "name": "User3"
+        }
+      }
+    ],
+    "content": "blah blah",
+    "id": 1
+  }
+#+END_SRC
+
+And
+#+BEGIN_SRC js
+  [
+    {
+      "author": {
+        "id": 1,
+        "name": "User1"
+      },
+      "com": [
+        {
+          "content": "Some comment",
+          "id": 1,
+          "user": {
+            "id": 2,
+            "name": "User2"
+          }
+        },
+        {
+          "content": "Other comment",
+          "id": 2,
+          "user": {
+            "id": 3,
+            "name": "User3"
+          }
+        }
+      ],
+      "id": 1,
+      "text": "blah blah"
+    },
+    {
+      "author": {
+        "id": 4,
+        "name": "User4"
+      },
+      "com": [
+        {
+          "content": "Some comment for other post",
+          "id": 3,
+          "user": {
+            "id": 5,
+            "name": "User2"
+          }
+        },
+        {
+          "content": "Other comment for other post",
+          "id": 4,
+          "user": {
+            "id": 6,
+            "name": "User6"
+          }
+        }
+      ],
+      "id": 2,
+      "text": "blah blah blah blah"
+    }
+  ]
+#+END_SRC
