@@ -12,17 +12,22 @@ type Goson interface {
 	Method(string) Goson
 	Hash(string, ...string) Goson
 	HashAlias(string, string, ...string) Goson
+	Array(string, ...string) Goson
+	ArrayAlias(string, string, ...string) Goson
+
 }
 
 type goson struct {
 	methods []string
 	alias map[string]string
-	hashes []*GosonNestedHash
+	hashes []*GosonNested
+	arrays []*GosonNested
 }
 
 func (this *goson) initialize() {
 	this.alias = make(map[string]string)
-	this.hashes = make([]*GosonNestedHash, 0)
+	this.hashes = make([]*GosonNested, 0)
+	this.arrays = make([]*GosonNested, 0)
 }
 
 type Values map[string]interface{}
@@ -32,7 +37,7 @@ type GosonHash struct {
 	model interface{}
 }
 
-type GosonNestedHash struct {
+type GosonNested struct {
 	goson
 	method string
 	alias string
@@ -73,7 +78,7 @@ func (this *goson) Method(method string) Goson {
 }
 
 func (this *goson) Hash(key string, methods...string) Goson {
-	nestedHash := new(GosonNestedHash)
+	nestedHash := new(GosonNested)
 	nestedHash.goson.initialize()
 	nestedHash.method = key
 	nestedHash.alias = key
@@ -84,7 +89,7 @@ func (this *goson) Hash(key string, methods...string) Goson {
 }
 
 func (this *goson) HashAlias(key string, alias string, methods...string) Goson {
-	nestedHash := new(GosonNestedHash)
+	nestedHash := new(GosonNested)
 	nestedHash.goson.initialize()
 	nestedHash.method = key
 	nestedHash.alias = alias
@@ -92,6 +97,29 @@ func (this *goson) HashAlias(key string, alias string, methods...string) Goson {
 
 	this.hashes = append(this.hashes, nestedHash)
 	return nestedHash
+}
+
+
+func (this *goson) Array(key string, methods...string) Goson {
+	nestedArray := new(GosonNested)
+	nestedArray.goson.initialize()
+	nestedArray.method = key
+	nestedArray.alias = key
+	nestedArray.methods = methods
+
+	this.arrays = append(this.arrays, nestedArray)
+	return nestedArray
+}
+
+func (this *goson) ArrayAlias(key string, alias string, methods...string) Goson {
+	nestedArray := new(GosonNested)
+	nestedArray.goson.initialize()
+	nestedArray.method = key
+	nestedArray.alias = alias
+	nestedArray.methods = methods
+
+	this.arrays = append(this.arrays, nestedArray)
+	return nestedArray
 }
 
 
@@ -124,31 +152,48 @@ func (this *goson) toMap(model interface{}) Values {
 	value = reflect.Indirect(value)
 
 	for _, name := range this.methods {
-		hash[prettyName(name)] = getValue(name, value)
+		hash[prettyName(name)] = getModel(name, value)
 	}
 
 	for alias, name := range this.alias {
-		hash[prettyName(alias)] = getValue(name, value)
+		hash[prettyName(alias)] = getModel(name, value)
 	}
 
 	for _, h := range this.hashes {
-		model := getValue(h.method, value)
+		model := getModel(h.method, value)
 		if model != nil {
 			hash[prettyName(h.alias)] = h.toMap(model)
 		}
+	}
+
+	for _, a := range this.arrays {
+		slice := getValue(a.method, value)
+		length := slice.Len()
+		array := make([]Values, length)
+
+		for i := 0; i < length; i++ {
+			array[i] = a.toMap(slice.Index(i).Interface())
+		}
+		hash[prettyName(a.alias)] = array
 	}
 
 	return hash
 }
 
 
-func getValue(name string, value reflect.Value) interface{} {
+func getModel(name string, value reflect.Value) interface{} {
+	return getValue(name, value).Interface()
+}
+
+
+func getValue(name string, value reflect.Value) reflect.Value {
 	if strings.HasSuffix(name, "()") {
 		methodName := name[:len(name) - 2]
-		return value.MethodByName(methodName).Call(nil)[0].Interface()
+		return value.MethodByName(methodName).Call(nil)[0]
 	} else {
-		return value.FieldByName(name).Interface()
+		return value.FieldByName(name)
 	}
+
 }
 
 func prettyName(name string) string {
